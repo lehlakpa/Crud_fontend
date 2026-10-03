@@ -1,7 +1,7 @@
 import { API_BASE_URL, REQUEST_TIMEOUT_MS } from '../constants/auth.js'
 
 export async function apiRequest(endpoint, { body, token, method = 'GET', signal } = {}, baseUrl = API_BASE_URL) {
-  if (!baseUrl) throw new Error('Set VITE_API_BASE_URL in your .env file and restart the app.')
+  if (!baseUrl) throw new Error('The API URL is not configured. Set VITE_API_BASE_URL in your hosting environment and redeploy, or in .env and restart locally.')
   const controller = new AbortController()
   const abort = () => controller.abort()
   if (signal?.aborted) controller.abort()

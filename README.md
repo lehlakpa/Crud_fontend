@@ -4,13 +4,25 @@ React + Vite registration, login, and logout UI.
 
 ## Run locally
 
-Use Node.js 22.13+ on the Node 22 release line, or Node.js 24+.
+Use Node.js 22.13+ on the Node 22 release line (matching the Vercel deployment).
 
 1. Run `npm install`.
 2. Copy `.env.example` to `.env` if it does not exist.
 3. Run `npm run dev`.
 
 `VITE_API_BASE_URL` is the backend origin, without /api/auth. Restart Vite after changes. Vite environment values are public browser configuration; never put passwords or private keys in them. Local .env files are ignored; .env.example is a shareable template.
+
+## Deploy on Vercel
+
+1. Import the GitHub repository `lehlakpa/Crud_fontend` into Vercel and choose the `main` branch.
+2. Keep the root directory at the repository root. `vercel.json` sets the Vite framework, `npm run build` command, and `dist` output directory. `package.json` selects Node.js 22.x.
+3. In the project's Environment Variables, add `VITE_API_BASE_URL` with value `https://crud-backend-2aap.onrender.com` for Production and Preview before deploying.
+4. Deploy. When changing this variable, redeploy because Vite embeds it at build time. Vercel does not automatically use `.env.example`.
+5. Check registration, login, product loading, and page reload on the deployed URL.
+
+The SPA rewrite serves `index.html` for application paths. API requests go directly to the Render backend. The backend must allow the Vercel frontend origin (or its existing wildcard origin with cookie credentials omitted), the `Content-Type` and `Authorization` headers, and the GET, POST, PUT, DELETE, and OPTIONS methods through CORS. This is configured on the backend, not in this frontend repository.
+
+See [Vercel's Vite guide](https://vercel.com/docs/frameworks/frontend/vite) for deployment and SPA routing.
 
 ## Organization
 
