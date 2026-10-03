@@ -1,0 +1,19 @@
+:root {
+  font-family: Inter, 'Segoe UI', sans-serif;
+  color: #172c30;
+  background: #f4f7f5;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  --accent: #176e60;
+  --muted: #647773;
+  --border: #d8e2dd;
+}
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; }
+button, input { font: inherit; }
+button { cursor: pointer; }
+button:disabled { cursor: wait; opacity: .65; }
+button:focus-visible, a:focus-visible { outline: 3px solid #84b9a8; outline-offset: 4px; }
+h1, h2, p { margin: 0; }
