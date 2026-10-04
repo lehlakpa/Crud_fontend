@@ -24,7 +24,10 @@ export default function LoginScreen({ navigate, message }) {
     try {
       const response = await login(values)
       sessionClient.acceptLogin(response, values.username)
+      await sessionClient.authorizedRequest('/api/admin/me')
+      navigate('/admin')
     } catch (error) {
+      sessionClient.clear()
       setError(error.message)
     } finally {
       busy.current = false
@@ -35,18 +38,18 @@ export default function LoginScreen({ navigate, message }) {
   return (
     <div className="form-content">
       <p className="eyebrow">WELCOME BACK</p>
-      <h2>Sign in to your account</h2>
-      <p className="subtitle">Enter your details to get started.</p>
+      <h2>Welcome back.</h2>
+      <p className="subtitle">Sign in to manage your store.</p>
       <form onSubmit={submit} aria-busy={loading}>
         {message && <p className="notice success" role="status">{message}</p>}
         {error && <p className="notice error" role="alert">{error}</p>}
         <fieldset disabled={loading}>
-          <label htmlFor="username">Username<input id="username" name="username" type="text" autoComplete="username" placeholder="Enter your username" required /></label>
+          <label htmlFor="username">Username<input id="username" name="username" type="text" maxLength={100} autoComplete="username" placeholder="Enter your username" required /></label>
           <label htmlFor="password">Password<input id="password" name="password" type="password" autoComplete="current-password" placeholder="Enter your password" required /></label>
           <button className="primary" type="submit">{loading ? 'Signing in...' : 'Sign in'}</button>
         </fieldset>
       </form>
-      <p className="switch-screen">New here? <button disabled={loading} onClick={() => navigate('register')}>Create an account</button></p>
+      <p className="switch-screen">Setting up your store? <button disabled={loading} onClick={() => navigate('/admin/register')}>Register admin</button></p>
     </div>
   )
 }

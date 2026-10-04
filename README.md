@@ -1,54 +1,67 @@
-# CRUD authentication frontend
+﻿# everyday. — storefront and admin workspace
 
-React + Vite registration, login, and logout UI.
+React + Vite frontend for the product and order API. Customers browse and order without an account. Admin routes validate access through `GET /api/admin/me`.
 
-## Run locally
+## Local setup
 
-Use Node.js 22.13+ on the Node 22 release line (matching the Vercel deployment).
+Use Node.js 22.13 or newer on the Node 22 release line.
 
-1. Run `npm install`.
-2. Copy `.env.example` to `.env` if it does not exist.
+1. Run `npm ci`.
+2. Copy `.env.example` to `.env` and set `VITE_API_BASE_URL` to the actual backend origin (no `/api` suffix). Use your local backend origin while testing backend changes that have not been deployed.
 3. Run `npm run dev`.
 
-`VITE_API_BASE_URL` is the backend origin, without /api/auth. Restart Vite after changes. Vite environment values are public browser configuration; never put passwords or private keys in them. Local .env files are ignored; .env.example is a shareable template.
+The existing local environment points to a Render deployment. This does not guarantee that deployment implements the latest contract. Restart Vite after changing the origin. Never place the admin registration key or other secrets in frontend environment variables.
 
-## Deploy on Vercel
+## Routes
 
-1. Import the GitHub repository `lehlakpa/Crud_fontend` into Vercel and choose the `main` branch.
-2. Keep the root directory at the repository root. `vercel.json` sets the Vite framework, `npm run build` command, and `dist` output directory. `package.json` selects Node.js 22.x.
-3. In the project's Environment Variables, add `VITE_API_BASE_URL` with value `https://crud-backend-2aap.onrender.com` for Production and Preview before deploying.
-4. Deploy. When changing this variable, redeploy because Vite embeds it at build time. Vercel does not automatically use `.env.example`.
-5. Check registration, login, product loading, and page reload on the deployed URL.
+- `/`: public collection, title/description search and exact category filtering.
+- `/products/:id`: public product details and availability.
+- `/products/:id/order`: public single-product cash-on-delivery order form and receipt.
+- `/admin/login`, `/admin/register`: admin credentials and registration requiring store owner approval; registration returns to login with the approval notice.
+- `/admin`: inventory summary, product management and paginated incoming orders.
+- `/admin/products`, `/admin/low-stock`: inventory with category, search and stock filters.
+- `/admin/products/new`, `/admin/products/:id/edit`: image upload, category suggestions, price and absolute stock updates.
 
-The SPA rewrite serves `index.html` for application paths. API requests go directly to the Render backend. The backend must allow the Vercel frontend origin (or its existing wildcard origin with cookie credentials omitted), the `Content-Type` and `Authorization` headers, and the GET, POST, PUT, DELETE, and OPTIONS methods through CORS. This is configured on the backend, not in this frontend repository.
+Products use `_id`, `image.url` and NPR pricing. Legacy products fall back to category `Uncategorized`, stock `0`, and threshold `5`. Low-stock includes sold-out products and products exactly at their limit. Counts and category options come from the full public product list.
 
-See [Vercel's Vite guide](https://vercel.com/docs/frameworks/frontend/vite) for deployment and SPA routing.
+## Sessions and orders
 
-## Organization
+Access tokens stay in memory; refresh tokens and a display profile use tab-scoped sessionStorage. A profile or token alone never grants admin UI access. The route guard calls `/api/admin/me`. Protected requests refresh once after 401 and retry once; failed refresh clears the session and returns protected screens to login. A 403 is access denied. Logout sends a bearer token with no body and clears local storage even if the request fails.
 
-- src/screens/: separate login, registration, and home UI with each screen's own form, loading, errors, and action logic.
-- src/App.jsx: screen navigation and session restoration.
-- src/services/auth.js: POST requests, parsing, timeout, API errors.
-- src/constants/auth.js: API origin, endpoints, timeout, storage key.
+Order submissions generate one UUID v4 per new attempt and freeze the JSON payload. Failed submissions lock the fields and offer a retry using the identical request ID and body. Pending attempts are saved in sessionStorage so navigation or reloading the same tab preserves the retry. If browser storage is unavailable, keep the page open to use the in-memory retry. Retries preserve the same request ID and details for all errors, including 429; 409 also refreshes product availability. Successful submissions show the reference, server-confirmed product total, payment method and status, then refresh stock. There is no cart, online payment or fulfillment mutation.
 
-Registration sends { name, username, password, phoneNumber } to /api/auth/register, then returns to login. Login sends { username, password } to /api/auth/login. Logout posts the refreshToken to /api/auth/logout and clears the saved session on success or an expired-session response.
+Serve production over HTTPS for `crypto.randomUUID()`. The backend must implement the documented order endpoints, support MongoDB transactions, and initialize its unique request-ID index. Backend deployment and database configuration are separate from this frontend.
 
-Requests omit cookie credentials to work with the backend's wildcard CORS origin. Login returns accessToken, refreshToken, and user. The access token stays in memory; the refresh token and a minimal display profile are saved in sessionStorage so reloading the same tab preserves the session. Passwords are never stored. On startup, POST /api/auth/refresh-token receives { refreshToken } and returns a new accessToken. The existing refresh token is retained unless the server returns a replacement. Storage is scoped to the browser tab rather than a permanent remembered login.
+## Deployment
 
-src/services/session.js owns session storage, restoration, logout, and authenticated requests. A protected request returning 401 refreshes once and retries once. Concurrent failures share a refresh request. Invalid refresh tokens clear the session; network/server failures preserve it for retry. Startup shows a loading screen until restoration completes, avoiding a login-screen flash. The saved profile is display data only; the backend remains responsible for authorization. Browser session storage is accessible to app JavaScript; an HttpOnly cookie design would require backend changes.
+Set `VITE_API_BASE_URL` in the host environment before building. Redeploy after changes because Vite embeds it at build time. `vercel.json` already rewrites client paths to `index.html`; configure the equivalent SPA fallback on other hosts. The backend must allow the frontend origin and GET, POST, PUT, DELETE, OPTIONS with Content-Type and Authorization through CORS. Requests omit cookies. Expose `Retry-After` through `Access-Control-Expose-Headers` so the frontend can read the cooldown across origins. Both delay seconds and HTTP dates are supported; missing or invalid headers use a 60-second fallback. During the cooldown, controls are disabled and the API client blocks further requests to that backend, including after a tab reload. HTTP 413 displays a submission-size message.
 
-Products load automatically after session restoration and after changes. Use the browser's normal reload (or mobile pull-to-refresh); the product toolbar has no Refresh button.
+## Checks
 
-The backend must allow Content-Type and Authorization headers through CORS. If switching to cookie authentication, configure an explicit frontend origin and Access-Control-Allow-Credentials on the backend before enabling credentials in the frontend. Confirm the response schema if your backend uses other token/profile fields.
+`npm run lint`, `npm test`, `npm run build`.
 
-## Products
+For restricted environments that cannot spawn test workers, use `node --experimental-test-isolation=none --test`.
 
-The signed-in home screen lists products from GET /api/products. Details use GET /api/products/:id. Create and update send multipart FormData (title, price, description, and image) using POST /api/products and PUT /api/products/:id. An image is required for creation and optional for updates; image URL and public_id are supplied by the backend upload handler. DELETE /api/products/:id requires an explicit confirmation in the UI. All writes send the login Bearer token. Prices have no currency symbol because the model does not specify a currency.
+Registration sends only name, username, password and phoneNumber. Name/username are limited to 100 characters, phone to 25, and passwords to at least 6 characters and at most 72 UTF-8 bytes. Never place admin keys or JWT signing secrets in frontend code or environment files.
 
-Product presentation and state/actions live in src/screens/home_screen.jsx. Details, add/edit forms, and deletion confirmation open in a scrollable bottom sheet with background scroll locked. Close it using Close, Escape, or the backdrop; dismissal is disabled during a request. Requests/validation live in src/services/products.js and constants in src/constants/products.js. Both auth and products share src/services/api.js.
+## Frontend file structure
 
-## Validation
+`src/App.jsx` selects routes and connects the layouts. Each screen has its own file:
 
-Run `npm run lint`, `npm run build`, and `npm test`. API tests mock responses without creating accounts on the deployed backend.
+| Route | Screen |
+| --- | --- |
+| `/` | `screens/home_screen.jsx` |
+| `/admin/login` | `screens/login_screen.jsx` |
+| `/admin/register` | `screens/register_screen.jsx` |
+| `/admin` | `screens/dashboard_screen.jsx` |
+| `/admin/products` | `screens/products_screen.jsx` |
+| `/admin/products/new` | `screens/add_product_screen.jsx` |
+| `/admin/products/:id/edit` | `screens/edit_product_screen.jsx` |
+| `/admin/products/:id/delete` | `screens/delete_product_screen.jsx` |
+| `/admin/low-stock` | `screens/low_stock_screen.jsx` |
+| `/admin/orders` | `screens/orders_screen.jsx` |
+| `/products/:id` | `screens/product_details_screen.jsx` |
+| `/products/:id/order` | `screens/order_screen.jsx` |
+| Unmatched route | `screens/not_found_screen.jsx` |
 
-In restricted environments that block test worker processes, run `node --experimental-test-isolation=none --test`.
+Shared cards, inventory, product editor, order form, access guard and UI elements live in `src/components/`. The product card is `components/product_card.jsx`. Site, authentication and admin shells live in `src/layouts/`. Navigation and loading hooks live in `src/hooks/`; product display/filter helpers live in `src/utils/products.js`. API calls remain in `src/services/`. Delete opens a dedicated confirmation screen and only sends the DELETE request after confirmation.

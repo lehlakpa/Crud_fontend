@@ -69,7 +69,7 @@ export function createSessionClient(request = apiRequest, storage = () => global
         publish(next)
         return next
       } catch (error) {
-        if (version === startedAt && [400, 401, 403].includes(error.status)) clear()
+        if (version === startedAt) clear()
         throw error
       } finally {
         refreshPromise = null
@@ -89,7 +89,7 @@ export function createSessionClient(request = apiRequest, storage = () => global
 
   async function authorizedRequest(endpoint, options = {}) {
     const current = session ?? await restore()
-    if (!current) throw new Error('Your session has expired. Please sign in again.')
+    if (!current) throw Object.assign(new Error('Your session has expired. Please sign in again.'), { status: 401 })
     try {
       return await request(endpoint, { ...options, token: current.accessToken })
     } catch (error) {
@@ -107,16 +107,9 @@ export function createSessionClient(request = apiRequest, storage = () => global
   }
 
   async function logout() {
-    const current = session ?? read()
     try {
-      await request(AUTH_ENDPOINTS.logout, {
-        method: 'POST', token: current?.accessToken,
-        ...(current?.refreshToken ? { body: { refreshToken: current.refreshToken } } : {}),
-      })
-    } catch (error) {
-      if (error.status !== 401) throw error
-    }
-    clear()
+      await authorizedRequest(AUTH_ENDPOINTS.logout, { method: 'POST' })
+    } finally { clear() }
   }
 
   return {

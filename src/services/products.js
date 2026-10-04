@@ -16,7 +16,7 @@ export async function getProduct(id, signal) {
   return product
 }
 export function productFormData(form, editing) {
-  const data = new FormData(form)
+  const data = form instanceof FormData ? form : new FormData(form)
   for (const key of ['title', 'description']) {
     const value = String(data.get(key) ?? '').trim()
     if (!value) throw new Error('Please enter a title and description.')
@@ -28,8 +28,15 @@ export function productFormData(form, editing) {
   if (!image?.size) {
     if (!editing) throw new Error('Please choose a product image.')
     data.delete('image')
-  } else if (!image.type.startsWith('image/')) {
-    throw new Error('Please choose an image file.')
+  } else if (!['image/jpeg', 'image/png', 'image/webp'].includes(image.type) || image.size > 5 * 1024 * 1024) {
+    throw new Error('Choose a JPEG, PNG or WebP image no larger than 5 MB.')
+  }
+  const category = String(data.get('category') ?? '').trim()
+  if (!category) throw new Error('Please enter a category.')
+  data.set('category', category)
+  for (const key of ['stock', 'lowStockThreshold']) {
+    const value = String(data.get(key) ?? '').trim()
+    if (!value || !Number.isSafeInteger(Number(value)) || Number(value) < 0) throw new Error('Stock and low-stock limit must be whole numbers of zero or more.')
   }
   return data
 }

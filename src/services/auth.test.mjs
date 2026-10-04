@@ -1,8 +1,29 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { authRequest } from './auth.js'
+import { authRequest, credentials } from './auth.js'
 
 const origin = 'https://backend.example'
+
+test('registration whitelists the four allowed fields', () => {
+  assert.deepEqual(credentials({ name: ' Test ', username: ' tester ', password: 'secret', phoneNumber: ' 123 ', extra: 'discard' }, true), {
+    name: 'Test', username: 'tester', password: 'secret', phoneNumber: '123',
+  })
+})
+
+test('credential limits include UTF-8 password bytes and character minimum', () => {
+  const valid = { name: 'n'.repeat(100), username: 'u'.repeat(100), phoneNumber: '1'.repeat(25), password: 'é'.repeat(36) }
+  assert.doesNotThrow(() => credentials(valid, true))
+  for (const change of [{ name: 'n'.repeat(101) }, { username: 'u'.repeat(101) }, { phoneNumber: '1'.repeat(26) }, { password: '12345' }, { password: '😀'.repeat(3) }, { password: 'é'.repeat(37) }]) {
+    assert.throws(() => credentials({ ...valid, ...change }, true))
+  }
+  assert.doesNotThrow(() => credentials({ username: 'tester', password: 'a'.repeat(72) }))
+  assert.throws(() => credentials({ username: 'tester', password: 'a'.repeat(73) }))
+})
+
+test('approval error from login is preserved', async (t) => {
+  t.mock.method(globalThis, 'fetch', async () => new Response(JSON.stringify({ message: 'Store owner approval required.' }), { status: 403 }))
+  await assert.rejects(authRequest('/api/auth/login', {}, origin), { status: 403, message: 'Store owner approval required.' })
+})
 
 test('sends JSON without cookie credentials for wildcard CORS', async (t) => {
   t.mock.method(globalThis, 'fetch', async (url, options) => {

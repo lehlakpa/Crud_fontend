@@ -1,7 +1,10 @@
 import { API_BASE_URL, REQUEST_TIMEOUT_MS } from '../constants/auth.js'
+import { getRetryAt, rateLimitError, retryAfterDeadline, setRetryAt } from './rateLimit.js'
 
 export async function apiRequest(endpoint, { body, token, method = 'GET', signal } = {}, baseUrl = API_BASE_URL) {
   if (!baseUrl) throw new Error('The API URL is not configured. Set VITE_API_BASE_URL in your hosting environment and redeploy, or in .env and restart locally.')
+  const retryAt = getRetryAt(baseUrl)
+  if (retryAt > Date.now()) throw rateLimitError(retryAt)
   const controller = new AbortController()
   const abort = () => controller.abort()
   if (signal?.aborted) controller.abort()
@@ -29,6 +32,14 @@ export async function apiRequest(endpoint, { body, token, method = 'GET', signal
     }
     if (!response.ok || data?.success === false) {
       const message = data?.message || data?.error
+      if (response.status === 429) {
+        const deadline = retryAfterDeadline(response.headers.get('Retry-After'))
+        setRetryAt(baseUrl, deadline)
+        throw rateLimitError(deadline, typeof message === 'string' ? message : undefined)
+      }
+      if (response.status === 413) {
+        throw Object.assign(new Error('Your submission is too large. Reduce the upload or submitted details and try again.'), { status: 413 })
+      }
       const error = new Error(typeof message === 'string' ? message : `Request failed (${response.status}). Please try again.`)
       error.status = response.status
       throw error

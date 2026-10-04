@@ -1,59 +1,60 @@
-import { useEffect, useState } from 'react'
-import { sessionClient } from './services/session.js'
+import { Fragment } from 'react'
+import HomeScreen from './screens/home_screen.jsx'
 import LoginScreen from './screens/login_screen.jsx'
 import RegisterScreen from './screens/register_screen.jsx'
-import HomeScreen from './screens/home_screen.jsx'
+import DashboardScreen from './screens/dashboard_screen.jsx'
+import ProductsScreen from './screens/products_screen.jsx'
+import LowStockScreen from './screens/low_stock_screen.jsx'
+import ProductDetailsScreen from './screens/product_details_screen.jsx'
+import AddProductScreen from './screens/add_product_screen.jsx'
+import EditProductScreen from './screens/edit_product_screen.jsx'
+import DeleteProductScreen from './screens/delete_product_screen.jsx'
+import OrderScreen from './screens/order_screen.jsx'
+import OrdersScreen from './screens/orders_screen.jsx'
+import NotFoundScreen from './screens/not_found_screen.jsx'
+import AdminGate from './components/admin_gate.jsx'
+import Notice from './components/notice.jsx'
+import AdminLayout from './layouts/admin_layout.jsx'
+import AuthLayout from './layouts/auth_layout.jsx'
+import SiteLayout from './layouts/site_layout.jsx'
+import useNavigation from './hooks/useNavigation.js'
 import './App.css'
 
 export default function App() {
-  const [screen, setScreen] = useState('login')
-  const [user, setUser] = useState(null)
-  const [restoring, setRestoring] = useState(true)
-  const [restoreError, setRestoreError] = useState('')
-  const [message, setMessage] = useState('')
-  useEffect(() => {
-    let active = true
-    const unsubscribe = sessionClient.subscribe(setUser)
-    sessionClient.restore().then((session) => {
-      if (active) setUser(session?.user ?? null)
-    }).catch((error) => {
-      if (active) setRestoreError(error.message)
-    }).finally(() => {
-      if (active) setRestoring(false)
-    })
-    return () => { active = false; unsubscribe() }
-  }, [])
-  function navigate(next, notice = '') {
-    setScreen(next)
-    setMessage(notice)
-  }
-  if (restoring || restoreError) {
-    return (
-      <main className="session-screen">
-        <div className="form-content">
-          <h2>{restoring ? 'Welcome back' : 'Unable to reconnect'}</h2>
-          <p className="subtitle" role={restoreError ? 'alert' : 'status'}>{restoreError || 'Restoring your session...'}</p>
-          {restoreError && <button className="primary" onClick={() => window.location.reload()}>Try again</button>}
-        </div>
-      </main>
-    )
-  }
-  if (user) return <HomeScreen user={user} navigate={navigate} />
-  return (
-    <main className="app-shell">
-      <section className="intro">
-        <a className="brand" href="/">CRUD<span>space</span></a>
-        <div>
-          <p className="eyebrow">YOUR SPACE, SIMPLIFIED</p>
-          <h1>A fresh start.<br />All in one place.</h1>
-          <p className="intro-copy">Sign in to your account and pick up where you left off.</p>
-        </div>
-        <p className="intro-footer">Simple. Connected. Yours.</p>
-      </section>
-      <section className="form-panel" aria-label="Account">
-        {screen === 'register'
-          ? <RegisterScreen navigate={navigate} message={message} /> : <LoginScreen navigate={navigate} message={message} />}
-      </section>
-    </main>
+  const { path, message, navigate } = useNavigation()
+  const auth = path === '/admin/login' || path === '/admin/register'
+  const admin = path === '/admin' || (path.startsWith('/admin/') && !auth)
+  const productMatch = path.match(/^\/products\/([^/]+)(\/order)?$/)
+  const editMatch = path.match(/^\/admin\/products\/([^/]+)\/edit$/)
+  const deleteMatch = path.match(/^\/admin\/products\/([^/]+)\/delete$/)
+  let screen = <NotFoundScreen />
+
+  if (path === '/') screen = <HomeScreen />
+  else if (path === '/admin/login') screen = <LoginScreen navigate={navigate} message={message} />
+  else if (path === '/admin/register') screen = <RegisterScreen navigate={navigate} message={message} />
+  else if (path === '/admin') screen = <DashboardScreen />
+  else if (path === '/admin/products') screen = <ProductsScreen />
+  else if (path === '/admin/low-stock') screen = <LowStockScreen />
+  else if (path === '/admin/orders') screen = <OrdersScreen />
+  else if (path === '/admin/products/new') screen = <AddProductScreen navigate={navigate} />
+  else if (editMatch) screen = <EditProductScreen id={editMatch[1]} navigate={navigate} />
+  else if (deleteMatch) screen = <DeleteProductScreen id={deleteMatch[1]} navigate={navigate} />
+  else if (productMatch) screen = productMatch[2]
+    ? <OrderScreen id={productMatch[1]} />
+    : <ProductDetailsScreen id={productMatch[1]} />
+
+  // Reset screen state when navigating between products or admin pages.
+  const page = <Fragment key={path}>{screen}</Fragment>
+  let content = <main>{page}</main>
+  if (auth) content = <AuthLayout>{page}</AuthLayout>
+  else if (admin) content = (
+    <AdminGate navigate={navigate}>
+      <AdminLayout path={path} navigate={navigate}>
+        {message && <Notice>{message}</Notice>}
+        {page}
+      </AdminLayout>
+    </AdminGate>
   )
+
+  return <SiteLayout admin={admin} auth={auth}>{content}</SiteLayout>
 }

@@ -54,3 +54,26 @@ test('protected writes require a session', async () => {
   await assert.rejects(saveProduct(null, new FormData()), /session has expired/)
   await assert.rejects(deleteProduct('123'), /session has expired/)
 })
+
+import { productFormData } from './products.js'
+function validForm() {
+  const body = new FormData()
+  for (const [key, value] of Object.entries({ title: 'Cup', description: 'Ceramic', price: '0', category: 'Home', stock: '0', lowStockThreshold: '5' })) body.set(key, value)
+  return body
+}
+test('product validation allows zero price and retains the existing image on edit', () => {
+  const data = productFormData(validForm(), true)
+  assert.equal(data.get('price'), '0')
+  assert.equal(data.has('image'), false)
+})
+test('product validation rejects invalid stock, image types and oversized files', () => {
+  for (const value of ['-1', '1.5', '', 'Infinity']) {
+    const data = validForm(); data.set('stock', value)
+    assert.throws(() => productFormData(data, true), /whole numbers/)
+  }
+  const svg = validForm(); svg.set('image', new Blob(['svg'], { type: 'image/svg+xml' }), 'image.svg')
+  assert.throws(() => productFormData(svg, true), /JPEG, PNG or WebP/)
+  const big = validForm(); big.set('image', new Blob([new Uint8Array(5 * 1024 * 1024 + 1)], { type: 'image/png' }), 'big.png')
+  assert.throws(() => productFormData(big, true), /5 MB/)
+  assert.throws(() => productFormData(validForm(), false), /choose a product image/)
+})

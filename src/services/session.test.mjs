@@ -54,12 +54,12 @@ test('invalid refresh token clears the saved session', async () => {
   assert.equal(storage.getItem(SESSION_STORAGE_KEY), undefined)
 })
 
-test('temporary network failures preserve the refresh token for retry', async () => {
+test('failed refresh clears the session even on network errors', async () => {
   const storage = memoryStorage()
   createSessionClient(null, () => storage).acceptLogin(login, 'test')
   const client = createSessionClient(async () => { throw new Error('Offline') }, () => storage)
   await assert.rejects(client.restore(), /Offline/)
-  assert.equal(JSON.parse(storage.getItem(SESSION_STORAGE_KEY)).refreshToken, 'refresh-old')
+  assert.equal(storage.getItem(SESSION_STORAGE_KEY), undefined)
 })
 
 test('a second unauthorized response does not loop', async () => {
@@ -76,11 +76,12 @@ test('a second unauthorized response does not loop', async () => {
   assert.equal(storage.getItem(SESSION_STORAGE_KEY), undefined)
 })
 
-test('logout sends the refresh token and removes local session', async () => {
+test('logout sends only the bearer header and removes local session', async () => {
   const storage = memoryStorage()
   const client = createSessionClient(async (endpoint, options) => {
     assert.equal(endpoint, AUTH_ENDPOINTS.logout)
-    assert.deepEqual(options.body, { refreshToken: 'refresh-old' })
+    assert.equal(options.body, undefined)
+    assert.equal(options.token, 'access-old')
     return null
   }, () => storage)
   client.acceptLogin(login, 'test')
@@ -97,5 +98,23 @@ test('a refresh finishing after local logout cannot restore the session', async 
   client.clear()
   finish({ accessToken: 'late-token' })
   assert.equal(await pending, null)
+  assert.equal(storage.getItem(SESSION_STORAGE_KEY), undefined)
+})
+
+test('403 access denial does not refresh or retry', async () => {
+  let calls = 0
+  const client = createSessionClient(async () => {
+    calls++
+    throw Object.assign(new Error('Denied'), { status: 403 })
+  }, memoryStorage)
+  client.acceptLogin(login, 'test')
+  await assert.rejects(client.authorizedRequest('/api/admin/me'), /Denied/)
+  assert.equal(calls, 1)
+})
+test('logout clears local tokens even when server logout fails', async () => {
+  const storage = memoryStorage()
+  const client = createSessionClient(async () => { throw new Error('Offline') }, () => storage)
+  client.acceptLogin(login, 'test')
+  await assert.rejects(client.logout(), /Offline/)
   assert.equal(storage.getItem(SESSION_STORAGE_KEY), undefined)
 })
