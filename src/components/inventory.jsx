@@ -24,7 +24,7 @@ export default function Inventory({
     <div className="section-heading">
       <div>
         <p className="eyebrow">STORE MANAGEMENT</p>
-        <h1>{dashboard ? 'A little overview.' : lowOnly ? 'Time to restock.' : 'Your collection.'}</h1>
+        <h1>{dashboard ? 'Store overview' : lowOnly ? 'Stock alerts' : 'Your products'}</h1>
         <p className="subtitle">{dashboard ? 'Everything you need to keep your store in good shape.' : lowOnly ? 'Products at or below their low-stock limit, including sold-out items.' : 'Manage the details that make your store yours.'}</p>
       </div>
       <Link className="primary inline" to="/admin/products/new">+ Add product</Link>

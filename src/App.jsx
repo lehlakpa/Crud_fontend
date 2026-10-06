@@ -19,10 +19,11 @@ import AuthLayout from './layouts/auth_layout.jsx'
 import SiteLayout from './layouts/site_layout.jsx'
 import useNavigation from './hooks/useNavigation.js'
 import './App.css'
+import './modern.css'
 
 export default function App() {
   const { path, message, navigate } = useNavigation()
-  const auth = path === '/admin/login' || path === '/admin/register'
+  const auth = path === '/admin/login'
   const admin = path === '/admin' || (path.startsWith('/admin/') && !auth)
   const productMatch = path.match(/^\/products\/([^/]+)(\/order)?$/)
   const editMatch = path.match(/^\/admin\/products\/([^/]+)\/edit$/)
@@ -31,7 +32,7 @@ export default function App() {
 
   if (path === '/') screen = <HomeScreen />
   else if (path === '/admin/login') screen = <LoginScreen navigate={navigate} message={message} />
-  else if (path === '/admin/register') screen = <RegisterScreen navigate={navigate} message={message} />
+  else if (path === '/admin/register') screen = <RegisterScreen navigate={navigate} />
   else if (path === '/admin') screen = <DashboardScreen />
   else if (path === '/admin/products') screen = <ProductsScreen />
   else if (path === '/admin/low-stock') screen = <LowStockScreen />

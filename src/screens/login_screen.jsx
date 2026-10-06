@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { login } from '../services/auth.js'
 import { sessionClient } from '../services/session.js'
+import PasswordField from '../components/password_field.jsx'
 
 export default function LoginScreen({ navigate, message }) {
   const [loading, setLoading] = useState(false)
@@ -45,11 +46,10 @@ export default function LoginScreen({ navigate, message }) {
         {error && <p className="notice error" role="alert">{error}</p>}
         <fieldset disabled={loading}>
           <label htmlFor="username">Username<input id="username" name="username" type="text" maxLength={100} autoComplete="username" placeholder="Enter your username" required /></label>
-          <label htmlFor="password">Password<input id="password" name="password" type="password" autoComplete="current-password" placeholder="Enter your password" required /></label>
+          <PasswordField />
           <button className="primary" type="submit">{loading ? 'Signing in...' : 'Sign in'}</button>
         </fieldset>
       </form>
-      <p className="switch-screen">Setting up your store? <button disabled={loading} onClick={() => navigate('/admin/register')}>Register admin</button></p>
     </div>
   )
 }

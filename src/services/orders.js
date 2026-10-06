@@ -1,4 +1,13 @@
 import { apiRequest } from './api.js'
+import { sessionClient } from './session.js'
+
+export const ORDER_STATUSES = ['pending', 'confirmed']
+
+export async function updateOrderStatus(id, status, request = sessionClient.authorizedRequest) {
+  if (!id) throw new Error('The order ID is missing.')
+  if (!ORDER_STATUSES.includes(status)) throw new Error('Choose a valid order status.')
+  return request(`/api/orders/${encodeURIComponent(id)}/status`, { method: 'PATCH', body: { status } })
+}
 
 export async function submitOrderAttempt(body, request = apiRequest) {
   savePendingOrder(body.productId, body)
@@ -30,7 +39,9 @@ export function createOrderAttempt(productId, values, uuid = () => crypto.random
     if (value.length > limit) throw new Error(`${key} is too long (maximum ${limit} characters).`)
     body[key] = value
   }
-  if (!body.address) throw new Error('Please enter a delivery address.')
+  if (!body.customerName) throw new Error('Please enter your full name.')
+  if (!body.phoneNumber) throw new Error('Please enter your phone number.')
+  if (!body.address) throw new Error('Please enter a delivery location.')
   if (body.phoneNumber && (!/^[\d\s+()-]+$/.test(body.phoneNumber) || !/^\d{7,15}$/.test(body.phoneNumber.replace(/\D/g, '')))) throw new Error('Enter a phone number with 7–15 digits.')
   if (body.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email)) throw new Error('Please enter a valid email address.')
   body.requestId = uuid()

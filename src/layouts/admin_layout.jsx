@@ -18,7 +18,7 @@ export default function AdminLayout({
   return <div className="admin-layout">
     <aside className="sidebar">
       <p className="eyebrow">YOUR WORKSPACE</p>
-      <nav>{[['/admin', '▦', 'Overview'], ['/admin/products', '◇', 'Products'], ['/admin/orders', '▤', 'Orders'], ['/admin/low-stock', '◷', 'Low stock']].map(([url, icon, label]) => <Link key={url} to={url} className={path === url || url === '/admin/products' && path.startsWith('/admin/products/') ? 'active' : ''}>
+      <nav>{[['/admin', '▦', 'Overview'], ['/admin/products', '◇', 'Products'], ['/admin/orders', '▤', 'Orders'], ['/admin/low-stock', '◷', 'Low stock'], ['/admin/register', '+', 'Register admin']].map(([url, icon, label]) => <Link key={url} to={url} className={path === url || url === '/admin/products' && path.startsWith('/admin/products/') ? 'active' : ''}>
           <span>{icon}</span>{label}</Link>)}</nav>
       <div className="sidebar-bottom">
         <p>A little care.<br />A thriving store.</p>

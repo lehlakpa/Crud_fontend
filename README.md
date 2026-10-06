@@ -1,4 +1,4 @@
-﻿# everyday. — storefront and admin workspace
+# everyday. — storefront and admin workspace
 
 React + Vite frontend for the product and order API. Customers browse and order without an account. Admin routes validate access through `GET /api/admin/me`.
 
@@ -17,8 +17,9 @@ The existing local environment points to a Render deployment. This does not guar
 - `/`: public collection, title/description search and exact category filtering.
 - `/products/:id`: public product details and availability.
 - `/products/:id/order`: public single-product cash-on-delivery order form and receipt.
-- `/admin/login`, `/admin/register`: admin credentials and registration requiring store owner approval; registration returns to login with the approval notice.
+- `/admin/login`: public admin sign-in.
 - `/admin`: inventory summary, product management and paginated incoming orders.
+- `/admin/register`: protected admin registration inside the workspace; requires an existing admin session and sends a bearer token. Registration returns to the dashboard without replacing the current session. The backend registration route must enforce admin authorization; new accounts still require store owner approval.
 - `/admin/products`, `/admin/low-stock`: inventory with category, search and stock filters.
 - `/admin/products/new`, `/admin/products/:id/edit`: image upload, category suggestions, price and absolute stock updates.
 
@@ -28,7 +29,7 @@ Products use `_id`, `image.url` and NPR pricing. Legacy products fall back to ca
 
 Access tokens stay in memory; refresh tokens and a display profile use tab-scoped sessionStorage. A profile or token alone never grants admin UI access. The route guard calls `/api/admin/me`. Protected requests refresh once after 401 and retry once; failed refresh clears the session and returns protected screens to login. A 403 is access denied. Logout sends a bearer token with no body and clears local storage even if the request fails.
 
-Order submissions generate one UUID v4 per new attempt and freeze the JSON payload. Failed submissions lock the fields and offer a retry using the identical request ID and body. Pending attempts are saved in sessionStorage so navigation or reloading the same tab preserves the retry. If browser storage is unavailable, keep the page open to use the in-memory retry. Retries preserve the same request ID and details for all errors, including 429; 409 also refreshes product availability. Successful submissions show the reference, server-confirmed product total, payment method and status, then refresh stock. There is no cart, online payment or fulfillment mutation.
+Order submissions generate one UUID v4 per new attempt and freeze the JSON payload. Failed submissions lock the fields and offer a retry using the identical request ID and body. Pending attempts are saved in sessionStorage so navigation or reloading the same tab preserves the retry. If browser storage is unavailable, keep the page open to use the in-memory retry. Retries preserve the same request ID and details for all errors, including 429; 409 also refreshes product availability. Successful submissions show the reference, server-confirmed product total, payment method and status, then refresh stock. Full name (`customerName`), phone number (`phoneNumber`) and delivery location (`address`) are required; email and notes remain optional. Admins can save pending/confirmed status changes through authenticated `PATCH /api/orders/:id/status` requests with `{ status }`. There is no cart or online payment.
 
 Serve production over HTTPS for `crypto.randomUUID()`. The backend must implement the documented order endpoints, support MongoDB transactions, and initialize its unique request-ID index. Backend deployment and database configuration are separate from this frontend.
 

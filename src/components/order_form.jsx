@@ -75,17 +75,17 @@ export default function OrderForm({
         <label>Quantity<input name="quantity" type="number" min="1" max="10000" step="1" required value={quantity} onChange={e => setQuantity(e.target.value)} />
         </label>
         <div className="editor-grid">
-          <label>Name <small>(optional)</small>
-            <input name="customerName" defaultValue={attempt?.customerName ?? ''} autoComplete="name" maxLength="100" />
+          <label>Full name
+            <input name="customerName" defaultValue={attempt?.customerName ?? ''} autoComplete="name" maxLength="100" required />
           </label>
-          <label>Phone <small>(optional)</small>
-            <input name="phoneNumber" defaultValue={attempt?.phoneNumber ?? ''} type="tel" autoComplete="tel" maxLength="25" />
+          <label>Phone number
+            <input name="phoneNumber" defaultValue={attempt?.phoneNumber ?? ''} type="tel" autoComplete="tel" maxLength="25" required />
           </label>
         </div>
         <label>Email <small>(optional)</small>
           <input name="email" defaultValue={attempt?.email ?? ''} type="email" autoComplete="email" maxLength="254" />
         </label>
-        <label>Delivery address<textarea name="address" defaultValue={attempt?.address ?? ''} autoComplete="street-address" placeholder="Street, ward, city and a nearby landmark" maxLength="500" required rows="3" />
+        <label>Delivery location / address<textarea name="address" defaultValue={attempt?.address ?? ''} autoComplete="street-address" placeholder="Street, ward, city and a nearby landmark" maxLength="500" required rows="3" />
         </label>
         <label>Delivery notes <small>(optional)</small>
           <textarea name="notes" defaultValue={attempt?.notes ?? ''} maxLength="1000" rows="2" placeholder="Anything else we should know?" />

@@ -3,6 +3,7 @@ import { sessionClient } from '../services/session.js';
 import ResourceState from '../components/resource_state.jsx';
 import useResource from '../hooks/useResource.js';
 import { money } from '../utils/products.js';
+import OrderStatusEditor from '../components/order_status_editor.jsx';
 export default function OrdersScreen() {
   const [page, setPage] = useState(1);
   const loader = useCallback(() => sessionClient.authorizedRequest(`/api/orders?${new URLSearchParams({
@@ -43,7 +44,7 @@ export default function OrdersScreen() {
               </td>
               <td className="nowrap">{money(o.total)}</td>
               <td>
-                <span className="badge low">{o.status}</span>
+                <OrderStatusEditor key={`${o._id}:${o.status}`} order={o} onSaved={resource.reload} />
                 <p className="muted">Cash on delivery</p>
               </td>
             </tr>)}</tbody>

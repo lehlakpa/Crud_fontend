@@ -1,8 +1,25 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { authRequest, credentials } from './auth.js'
+import { authRequest, credentials, register } from './auth.js'
+import { sessionClient } from './session.js'
 
 const origin = 'https://backend.example'
+
+test('admin registration uses the current authorized session', async (t) => {
+  t.mock.method(sessionClient, 'authorizedRequest', async (endpoint, options) => {
+    assert.equal(endpoint, '/api/auth/register')
+    assert.deepEqual(options, { method: 'POST', body: {
+      name: 'New Admin', username: 'newadmin', password: 'secret', phoneNumber: '9800000000',
+    } })
+    return { success: true }
+  })
+  assert.deepEqual(await register({ name: 'New Admin', username: 'newadmin', password: 'secret', phoneNumber: '9800000000' }), { success: true })
+})
+
+test('admin registration without a session is rejected', async () => {
+  sessionClient.clear()
+  await assert.rejects(register({ name: 'New Admin', username: 'newadmin', password: 'secret', phoneNumber: '9800000000' }), { status: 401 })
+})
 
 test('registration whitelists the four allowed fields', () => {
   assert.deepEqual(credentials({ name: ' Test ', username: ' tester ', password: 'secret', phoneNumber: ' 123 ', extra: 'discard' }, true), {

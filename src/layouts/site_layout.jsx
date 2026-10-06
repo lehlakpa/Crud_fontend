@@ -14,7 +14,7 @@ export default function SiteLayout({
       </Link>
       <nav>
         <Link to="/" className={!admin && !auth ? 'selected' : ''}>The collection</Link>
-        <Link to={admin ? '/admin' : '/admin/login'} className="admin-link">
+        <Link to="/admin" className="admin-link">
           {admin ? 'Admin workspace' : 'Store admin'} <span>↗</span>
         </Link>
       </nav>
